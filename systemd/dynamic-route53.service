@@ -1,0 +1,34 @@
+[Unit]
+Description=Updates a Route 53 Resource Record with the public IP address
+Requires=network-online.target
+
+[Service]
+ExecStart=/usr/bin/dynamic-route53 -c /etc/dynamic-route53/config.yml
+Restart=no
+# There still isn't perfect support for the profile file
+EnvironmentFile=/etc/dynamic-route53/aws-vars
+
+DynamicUser=true
+CapabilityBoundingSet=
+PrivateTmp=true
+PrivateDevices=true
+PrivateMounts=true
+PrivateUsers=true
+NoNewPrivileges=true
+ProtectClock=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectProc=invisible
+ProtectHostname=true
+SystemCallArchitectures=native
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictRealtime=true
+RestrictAddressFamilies=AF_INET AF_INET6
+RestrictNamespaces=~cgroup ipc net mnt pid user uts
+SystemCallFilter=~@obsolete @cpu-emulation @clock @debug @module @mount @raw-io @reboot @swap @privileged @resources
+ProcSubset=pid
+UMask=0077

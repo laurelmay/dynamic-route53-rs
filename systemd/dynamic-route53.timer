@@ -1,0 +1,10 @@
+[Unit]
+Description=Run dynamic-route53 hourly
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,17 @@
+---
+# A sample configuration file for dynamic-route53
+
+# The ID of the Route 53 hosted zone:
+hosted_zone_id: ""
+
+# The FQDN to update on each run. This name must be fully-qualified and
+# part of the hosted zone with the given id
+record_name: dynamic.example.com
+
+# The TTL for the created/updated record (default: 300)
+# ttl: 300
+
+# The service to use for checking the public IP address. This service must
+# return the IP address as a raw string without any wrapper objects or quotes.
+# (default: "https://checkip.amazonaws.com")
+# check_ip: "https://checkip.amazonaws.com"
