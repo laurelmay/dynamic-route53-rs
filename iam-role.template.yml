@@ -1,0 +1,22 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+  HostedZoneId:
+    Description: The ID of the hosted zone to update records in
+    Type: String
+
+Resources:
+  Route53UpdateUser:
+    Type: AWS::IAM::User
+  AllowRoute53UpdatePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: "AllowRoute53UpdatePolicy"
+      Users: [!Ref Route53UpdateUser]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: route53:ChangeResourceRecordSets
+            Resource: !Sub "arn:${AWS::Partition}:route53:::hostedzone/${HostedZoneId}"
