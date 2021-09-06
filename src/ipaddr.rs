@@ -23,5 +23,9 @@ pub fn current_record_value(host: &str) -> Result<IpAddr, AddressResolutionError
 
 pub fn is_current_address(host: &str, ip: &str) -> Result<bool, AddressResolutionError> {
     println!("Comparing {} to {}", host, ip);
-    return Ok(current_record_value(host)? == ip.parse::<IpAddr>()?);
+    match current_record_value(host) {
+        Err(AddressResolutionError::DnsResolutionFailure(_)) => Ok(false),
+        Err(e) => Err(e),
+        Ok(resolved_ip) => Ok(resolved_ip == ip.parse::<IpAddr>()?),
+    }
 }
