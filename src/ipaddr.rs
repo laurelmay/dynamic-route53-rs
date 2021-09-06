@@ -6,7 +6,7 @@ pub async fn get_ip(hostname: String) -> Result<String, Box<dyn std::error::Erro
     Ok(resp)
 }
 
-pub fn current_record_value(host: &str) -> Result<IpAddr, AddressResolutionError> {
+fn current_record_value(host: &str) -> Result<IpAddr, AddressResolutionError> {
     // ToSocketAddrs requires a properly-formed socket which requires a port to
     // be present. We never actually use the port for anything else but it has to
     // be there.
