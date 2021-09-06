@@ -46,7 +46,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let host_ip = get_ip(config.ip_check).await?;
     let host_ip = host_ip.trim();
-    if is_current_address(&config.record_name, &host_ip)? {
+    if !config.always_update_record && is_current_address(&config.record_name, &host_ip)? {
         println!("Avoiding unnecessary work. Record is already correct.");
         return Ok(());
     }

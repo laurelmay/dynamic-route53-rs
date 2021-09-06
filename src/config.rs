@@ -10,6 +10,8 @@ pub struct Config {
     pub ttl: i64,
     #[serde(default = "default_ip_service")]
     pub ip_check: String,
+    #[serde(default = "default_force_set")]
+    pub always_update_record: bool,
 }
 
 fn default_ip_service() -> String {
@@ -18,6 +20,10 @@ fn default_ip_service() -> String {
 
 fn default_ttl() -> i64 {
     300
+}
+
+fn default_force_set() -> bool {
+    false
 }
 
 pub fn parse_config(config_file: PathBuf) -> Result<Config, Box<dyn std::error::Error>> {
