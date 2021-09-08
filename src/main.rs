@@ -31,31 +31,30 @@ fn build_change_object(ip: &str, name: &str, ttl: i64) -> ChangeBatch {
         .action(ChangeAction::Upsert)
         .resource_record_set(record_set)
         .build();
-    let batch = ChangeBatch::builder()
+    ChangeBatch::builder()
         .comment("Update IP address")
         .changes(change)
-        .build();
-    return batch;
+        .build()
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let Opt { config_file } = Opt::from_args();
 
-    let config = parse_config(config_file)?;
+    let config = parse_config(&config_file)?;
 
-    let host_ip = get_ip(config.ip_check).await?;
+    let host_ip = get_ip(&config.ip_check).await?;
     let host_ip = host_ip.trim();
-    if !config.always_update_record && is_current_address(&config.record_name, &host_ip)? {
+    if !config.always_update_record && is_current_address(&config.record_name, host_ip)? {
         println!("Avoiding unnecessary work. Record is already correct.");
         return Ok(());
     }
     let shared_config = aws_config::load_from_env().await;
     let client = Client::new(&shared_config);
-    let batch = build_change_object(&host_ip, &config.record_name, config.ttl);
+    let batch = build_change_object(host_ip, &config.record_name, config.ttl);
     let req = client
         .change_resource_record_sets()
-        .hosted_zone_id(config.hosted_zone_id)
+        .hosted_zone_id(&config.hosted_zone_id)
         .change_batch(batch);
     let resp = req.send().await?;
     println!("Request response: {:?}", resp);

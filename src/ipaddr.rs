@@ -1,7 +1,7 @@
 use crate::errors::AddressResolutionError;
 use std::net::{IpAddr, ToSocketAddrs};
 
-pub async fn get_ip(hostname: String) -> Result<String, Box<dyn std::error::Error>> {
+pub async fn get_ip(hostname: &str) -> Result<String, Box<dyn std::error::Error>> {
     let resp = reqwest::get(hostname).await?.text().await?;
     Ok(resp)
 }
@@ -16,9 +16,9 @@ fn current_record_value(host: &str) -> Result<IpAddr, AddressResolutionError> {
         return Ok(host_ip.ip());
     }
 
-    return Err(AddressResolutionError::DnsResolutionFailure(
+    Err(AddressResolutionError::DnsResolutionFailure(
         host.to_string(),
-    ));
+    ))
 }
 
 pub fn is_current_address(host: &str, ip: &str) -> Result<bool, AddressResolutionError> {

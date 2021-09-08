@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fs::File;
-use std::path::PathBuf;
+use std::path::Path;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Config {
@@ -26,6 +26,6 @@ fn default_force_set() -> bool {
     false
 }
 
-pub fn parse_config(config_file: PathBuf) -> Result<Config, Box<dyn std::error::Error>> {
+pub fn parse_config(config_file: &Path) -> Result<Config, Box<dyn std::error::Error>> {
     Ok(serde_yaml::from_reader(File::open(config_file)?)?)
 }
