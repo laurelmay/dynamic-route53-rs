@@ -2,7 +2,7 @@
 
 _pkgbase=dynamic-route53
 pkgname="${_pkgbase}"-git
-pkgver=0.0.1
+pkgver=0.1.0
 pkgrel=1
 pkgdesc="Dynamically update Route 53 with the current IP"
 arch=("x86_64")
