@@ -1,10 +1,21 @@
 ---
 AWSTemplateFormatVersion: "2010-09-09"
 
+Description: >-
+  Creates an IAM user to perform updates to a Hosted Zone as well as a framework
+  to notify whenever that user actually performs an update.
+
 Parameters:
   HostedZoneId:
     Description: The ID of the hosted zone to update records in
     Type: String
+  NotificationEmail:
+    Description: The email address to send change notifications to
+    Type: String
+    Default: ""
+
+Conditions:
+  SendEmail: !Not [!Equals [!Ref NotificationEmail, ""]]
 
 Resources:
   Route53UpdateUser:
@@ -20,3 +31,113 @@ Resources:
           - Effect: Allow
             Action: route53:ChangeResourceRecordSets
             Resource: !Sub "arn:${AWS::Partition}:route53:::hostedzone/${HostedZoneId}"
+  NotificationTopic:
+    Type: AWS::SNS::Topic
+  NotificationSubscriptions:
+    Type: AWS::SNS::Subscription
+    Condition: SendEmail
+    Properties:
+      Endpoint: !Ref NotificationEmail
+      Protocol: email
+      TopicArn: !Ref NotificationTopic
+  NotificationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: >-
+        Allow publishing to the Route 53 notification topic
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: publish-notification-topic
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: sns:Publish
+                Resource: !Ref NotificationTopic
+      ManagedPolicyArns:
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+  NotificationTransform:
+    Type: AWS::Lambda::Function
+    Properties:
+      Architectures: [arm64]
+      MemorySize: 128
+      Environment:
+        Variables:
+          TOPIC_ARN: !Ref NotificationTopic
+      Role: !GetAtt NotificationRole.Arn
+      Runtime: nodejs14.x
+      Handler: index.handler
+      Code:
+        ZipFile: |
+          const AWS = require('aws-sdk');
+
+          function consoleDomain(region) {
+            if (region.startsWith("us-gov")) {
+              return "console.amazonaws-us-gov.com";
+            } else if (region.startsWith("cn-")) {
+              return "console.amazonaws.cn";
+            } else {
+              return "console.aws.amazon.com";
+            }
+          }
+
+          exports.handler = function(event, context) {
+            console.log("Processing event: " + event.id);
+            const details = event.detail;
+            const userName = details.userIdentity.userName;
+            const hostedZone = details.requestParameters.hostedZoneId;
+            const cloudTrailId = details.eventID;
+            const region = details.awsRegion;
+            const changes = details.requestParameters.changeBatch.changes;
+            const changeStr = JSON.stringify(changes, null, 2);
+
+            const params = {
+              TopicArn: process.env.TOPIC_ARN,
+              Subject: `${hostedZone} Updated`,
+              Message:
+                `${userName} made the following changes to ${hostedZone}.
+                For more information see https://${consoleDomain(region)}/cloudtrail/home?region=${region}#/events/${cloudTrailId}.
+                ${changeStr}`,
+            }
+            const publishPromise = new AWS.SNS({apiVersion: "2010-03-31"}).publish(params).promise();
+            publishPromise
+              .then((data) => console.log(`Message ID published: ${data.MessageId}`))
+              .catch((err) => console.error(err, err.stack));
+          }
+  UpdateRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Checks when the Route 53 update user performs updates to the zone
+      Name: route53update
+      Targets:
+        - Id: notification-transform-v1
+          Arn: !GetAtt NotificationTransform.Arn
+      EventPattern:
+        source:
+          - aws.route53
+        detail-type:
+          - AWS API Call via CloudTrail
+        detail:
+          eventSource:
+            - route53.amazonaws.com
+          eventName:
+            - ChangeResourceRecordSets
+          requestParameters:
+            hostedZoneId:
+              - !Ref HostedZoneId
+          userIdentity:
+            arn:
+              - !GetAtt Route53UpdateUser.Arn
+  EventBridgeNotificationPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt NotificationTransform.Arn
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt UpdateRule.Arn
