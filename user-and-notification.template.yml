@@ -12,10 +12,6 @@ Parameters:
   NotificationEmail:
     Description: The email address to send change notifications to
     Type: String
-    Default: ""
-
-Conditions:
-  SendEmail: !Not [!Equals [!Ref NotificationEmail, ""]]
 
 Resources:
   Route53UpdateUser:
@@ -35,7 +31,6 @@ Resources:
     Type: AWS::SNS::Topic
   NotificationSubscriptions:
     Type: AWS::SNS::Subscription
-    Condition: SendEmail
     Properties:
       Endpoint: !Ref NotificationEmail
       Protocol: email
