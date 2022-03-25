@@ -1,21 +1,35 @@
 ---
 AWSTemplateFormatVersion: "2010-09-09"
 
-Description: >-
+Description: |-
   Creates an IAM user to perform updates to a Hosted Zone as well as a framework
   to notify whenever that user actually performs an update.
+
+  This is ideal for situations where the IAM user and the Route 53 hosted zone
+  exist within the same AWS account.
 
 Parameters:
   HostedZoneId:
     Description: The ID of the hosted zone to update records in
     Type: String
   NotificationEmail:
-    Description: The email address to send change notifications to
+    Description: >-
+      The email address to send change notifications to. It need to be a valid
+      email address. If this is not provided, the notification framework will
+      not be created.
     Type: String
+    Default: NOT_PROVIDED
+
+Conditions:
+  CreateNotificationFramework: !Not [!Equals [NOT_PROVIDED, !Ref NotificationEmail]]
 
 Resources:
   Route53UpdateUser:
     Type: AWS::IAM::User
+    Properties:
+      Tags:
+        - Key: Purpose
+          Value: !Sub Allows updating ${HostedZoneId} to support Dynamic DNS updates
   AllowRoute53UpdatePolicy:
     Type: AWS::IAM::Policy
     Properties:
@@ -27,15 +41,19 @@ Resources:
           - Effect: Allow
             Action: route53:ChangeResourceRecordSets
             Resource: !Sub "arn:${AWS::Partition}:route53:::hostedzone/${HostedZoneId}"
+
   NotificationTopic:
+    Condition: CreateNotificationFramework
     Type: AWS::SNS::Topic
   NotificationSubscriptions:
+    Condition: CreateNotificationFramework
     Type: AWS::SNS::Subscription
     Properties:
       Endpoint: !Ref NotificationEmail
       Protocol: email
       TopicArn: !Ref NotificationTopic
   NotificationRole:
+    Condition: CreateNotificationFramework
     Type: AWS::IAM::Role
     Properties:
       Description: >-
@@ -58,9 +76,9 @@ Resources:
       ManagedPolicyArns:
         - !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
   NotificationTransform:
+    Condition: CreateNotificationFramework
     Type: AWS::Lambda::Function
     Properties:
-      Architectures: [arm64]
       MemorySize: 128
       Environment:
         Variables:
@@ -106,6 +124,7 @@ Resources:
               .catch((err) => console.error(err, err.stack));
           }
   UpdateRule:
+    Condition: CreateNotificationFramework
     Type: AWS::Events::Rule
     Properties:
       Description: Checks when the Route 53 update user performs updates to the zone
@@ -130,9 +149,23 @@ Resources:
             arn:
               - !GetAtt Route53UpdateUser.Arn
   EventBridgeNotificationPermission:
+    Condition: CreateNotificationFramework
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName: !GetAtt NotificationTransform.Arn
       Action: lambda:InvokeFunction
       Principal: events.amazonaws.com
       SourceArn: !GetAtt UpdateRule.Arn
+
+Outputs:
+  Route53UpdateUser:
+    Description: >-
+      The IAM user created specifically to modify the Route 53 Hosted Zone. It
+      will likely be necessary to create an Access Key for this User so that it
+      can login.
+    Value: !Ref Route53UpdateUser
+  NotificationTopic:
+    Condition: CreateNotificationFramework
+    Description: >-
+      The SNS topic where changes to the hosted zone will be published.
+    Value: !Ref NotificationTopic
