@@ -9,13 +9,14 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  build-rust:
+    name: Build Rust binary
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Cache dependencies
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             ~/.cargo/bin/
@@ -34,3 +35,30 @@ jobs:
         run: cargo build --release
       - name: Run tests
         run: cargo test --release
+  build-arch-package:
+    name: Build ArchLinux Package
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:base-devel
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          path: repo
+      - name: Install dependencies
+        # Because we can't run makepkg as root, we also can't install
+        # packages using `makepkg`'s `-s` flag :(
+        run: pacman -Syu --noconfirm cargo git
+      - name: Create build directory
+        # http://allanmcrae.com/2015/01/replacing-makepkg-asroot/
+        run: |
+          useradd -m -d /home/build builder
+          cp repo/PKGBUILD /home/build/PKGBUILD
+      - name: Build package
+        run: sudo -u builder -- makepkg
+        working-directory: /home/build
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: package
+          path: "/home/build/*.pkg.tar.zst"
