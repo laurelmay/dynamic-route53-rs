@@ -12,6 +12,10 @@ Parameters:
   HostedZoneId:
     Description: The ID of the hosted zone to update records in
     Type: String
+  DnsName:
+    Description: >-
+      The normalized fully qualified domain name of the record to update.
+    Type: String
   NotificationEmail:
     Description: >-
       The email address to send change notifications to. It need to be a valid
@@ -41,6 +45,11 @@ Resources:
           - Effect: Allow
             Action: route53:ChangeResourceRecordSets
             Resource: !Sub "arn:${AWS::Partition}:route53:::hostedzone/${HostedZoneId}"
+            Condition:
+              ForAllValues:StringEquals:
+                route53:ChangeResourceRecordSetsNormalizedRecordNames: [!Ref DnsName]
+                route53:ChangeResourceRecordSetsRecordTypes: ["A", "AAAA"]
+                route53:ChangeResourceRecordSetsActions: ["UPSERT"]
 
   NotificationTopic:
     Condition: CreateNotificationFramework
@@ -84,7 +93,7 @@ Resources:
         Variables:
           TOPIC_ARN: !Ref NotificationTopic
       Role: !GetAtt NotificationRole.Arn
-      Runtime: nodejs14.x
+      Runtime: nodejs16.x
       Handler: index.handler
       Code:
         ZipFile: |

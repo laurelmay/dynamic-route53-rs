@@ -10,17 +10,19 @@ to dynamically update a DNS record.
 Since this project interacts with the Route 53 API directly, it will be necessary to
 have an IAM principal with permissions to invoke `route53:ChangeResourceRecordSets`
 on the hosted zone where the dynamic DNS record will be. This is the only required
-permission, but unfortunately Route 53 does not provide resource specifiers for
-particular Resource Record Sets nor any condition keys which means the created
-principal will need access to modify any RR set in the Hosted Zone. Consider this
-potential overly-permissive setup in your Route 53 Hosted Zone design.
+permission. Conditions can be used to limit the actions that can be performed on
+the resource record set.
 
 There is an included sample CloudFormation template,
 `user-and-notification.template.yml` which creates the IAM user as well as the
 necessary infrastructure to send an email every time that user updates the given
 Route 53 Hosted Zone. The notifications are based on EventBridge and SNS with a
 Lambda function to transform the event into a more useful message. It will be
-necessary to create the Access Key for the user manually.
+necessary to create the Access Key for the user manually. The template also uses
+the [fine-grained permissions][rrset-conditions] to limit to UPSERT operations on
+A and AAAA records.
+
+[rrset-conditions]: https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/specifying-rrset-conditions.html
 
 ### Building the project
 
