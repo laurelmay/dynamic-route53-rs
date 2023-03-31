@@ -93,12 +93,16 @@ Resources:
         Variables:
           TOPIC_ARN: !Ref NotificationTopic
       Role: !GetAtt NotificationRole.Arn
-      Runtime: nodejs16.x
+      Runtime: nodejs18.x
       Handler: index.handler
       Code:
         ZipFile: |
-          const AWS = require('aws-sdk');
+          const { SNSClient, PublishCommand } = require("@aws-sdk/client-sns");
+          const client = new SNSClient();
 
+          // The Route 53 APIs that we're truly concerned with only exist in the
+          // commercial partition but we'll make this somewhat generic just in case.
+          // This won't support `aws-iso` or `aws-iso-b`.
           function consoleDomain(region) {
             if (region.startsWith("us-gov")) {
               return "console.amazonaws-us-gov.com";
@@ -109,7 +113,7 @@ Resources:
             }
           }
 
-          exports.handler = function(event, context) {
+          exports.handler = async function(event, context) {
             console.log("Processing event: " + event.id);
             const details = event.detail;
             const userName = details.userIdentity.userName;
@@ -119,18 +123,20 @@ Resources:
             const changes = details.requestParameters.changeBatch.changes;
             const changeStr = JSON.stringify(changes, null, 2);
 
-            const params = {
+            const publishCommand = new PublishCommand({
               TopicArn: process.env.TOPIC_ARN,
               Subject: `${hostedZone} Updated`,
               Message:
                 `${userName} made the following changes to ${hostedZone}.
                 For more information see https://${consoleDomain(region)}/cloudtrail/home?region=${region}#/events/${cloudTrailId}.
                 ${changeStr}`,
+            });
+            try {
+              const result = await client.send(publishCommand);
+              console.log(`Message ID published: ${result.MessageId}`);
+            } catch (err) {
+              console.error(err, err.stack);
             }
-            const publishPromise = new AWS.SNS({apiVersion: "2010-03-31"}).publish(params).promise();
-            publishPromise
-              .then((data) => console.log(`Message ID published: ${data.MessageId}`))
-              .catch((err) => console.error(err, err.stack));
           }
   UpdateRule:
     Condition: CreateNotificationFramework
