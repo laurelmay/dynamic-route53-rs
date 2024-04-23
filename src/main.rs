@@ -15,7 +15,7 @@ use ipaddr::{get_ip, is_current_address};
 
 #[derive(Debug, StructOpt)]
 struct Opt {
-    #[structopt(short, long, parse(from_os_str))]
+    #[structopt(short, long, env, parse(from_os_str))]
     config_file: PathBuf,
 }
 

@@ -62,3 +62,4 @@ jobs:
         with:
           name: package
           path: "/home/build/*.pkg.tar.zst"
+
