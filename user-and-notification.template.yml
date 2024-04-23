@@ -25,7 +25,12 @@ Parameters:
     Default: NOT_PROVIDED
 
 Conditions:
-  CreateNotificationFramework: !Not [!Equals [NOT_PROVIDED, !Ref NotificationEmail]]
+  # CreateNotificationFramework: !Not [!Equals [NOT_PROVIDED, !Ref NotificationEmail]]
+  CreateNotificationFramework:
+    Fn::Not:
+      Fn::Equals:
+        - NOT_PROVIDED
+        - Ref: NotificationEmail
 
 Resources:
   Route53UpdateUser:

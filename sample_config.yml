@@ -10,8 +10,19 @@ hosted_zone_id: ""
 # REQUIRED
 record_name: dynamic.example.com
 
+# The interval at which to perform the checks (in seconds)
+# check_interval: 300
+
+# The DNS server to query to check the current value of the A record.
+# (default: CloudFlare DNS (1.1.1.1) on Port 53/UDP)
+# dns_server:
+#   host: 1.1.1.1
+#   port: 53
+#   protocol: UDP
+
 # The TTL for the created/updated record (default: 300)
 # ttl: 300
+
 
 # The service to use for checking the public IP address. This service must
 # return the IP address as a raw string without any wrapper objects or quotes.
