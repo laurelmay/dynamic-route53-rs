@@ -2,6 +2,8 @@ use core::fmt;
 use std::error::Error;
 use std::io;
 use std::net::AddrParseError;
+use trust_dns_client::error::{ClientError, ClientErrorKind};
+use trust_dns_client::proto::error::ProtoError;
 
 #[derive(Debug)]
 pub enum AddressResolutionError {
@@ -22,9 +24,27 @@ impl From<AddrParseError> for AddressResolutionError {
     }
 }
 
+impl From<ClientError> for AddressResolutionError {
+    fn from(e: ClientError) -> AddressResolutionError {
+        match e.kind() {
+            ClientErrorKind::Msg(s) => AddressResolutionError::DnsResolutionFailure(s.to_owned()),
+            ClientErrorKind::Message(s) => {
+                AddressResolutionError::DnsResolutionFailure((*s).to_owned())
+            }
+            &_ => AddressResolutionError::DnsResolutionFailure(format!("{:?}", e)),
+        }
+    }
+}
+
+impl From<ProtoError> for AddressResolutionError {
+    fn from(e: ProtoError) -> AddressResolutionError {
+        AddressResolutionError::DnsResolutionFailure(format!("{:?}", e))
+    }
+}
+
 impl fmt::Display for AddressResolutionError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        return match self {
+        match self {
             AddressResolutionError::DnsResolutionFailure(host) => {
                 write!(f, "AddressResolutionError({})", host)
             }
@@ -32,7 +52,7 @@ impl fmt::Display for AddressResolutionError {
                 write!(f, "InvalidCheckIpResponse({})", e)
             }
             AddressResolutionError::InvalidHostFormat(e) => write!(f, "InvalidHostFormat({})", e),
-        };
+        }
     }
 }
 

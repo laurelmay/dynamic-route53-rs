@@ -45,7 +45,7 @@ which should properly update the entry in Route 53.
 ### On Arch Linux
 
 A (less-than-great) PKGBUILD is provided that will put the systemd files in place
-to run this on a timer. Install the package using the PKGBUILD as you usually would.
+to run this on a timer. Install t25078.0001.0001.0008he package using the PKGBUILD as you usually would.
 Update the configuration files in `/etc/dynamic-route53` and then enable the timer with
 
 ```
