@@ -14,8 +14,7 @@ jobs:
       - name: Install podman
         run: |
           sudo apt-get update
-          sudo apt-get -y upgrade
-          sudo apt-get -y install podman
+          sudo apt-get -y install podman buildah qemu-user-static
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Build image
