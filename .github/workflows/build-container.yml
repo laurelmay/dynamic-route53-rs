@@ -24,6 +24,7 @@ jobs:
         with:
           image: dynamic-route53
           tags: latest ${{ github.sha }}
+          archs: amd64, arm64
           containerfiles: |
             ./Containerfile
           oci: true
