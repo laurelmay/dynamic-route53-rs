@@ -16,4 +16,4 @@ record_name: dynamic.example.com
 # The service to use for checking the public IP address. This service must
 # return the IP address as a raw string without any wrapper objects or quotes.
 # (default: "https://checkip.amazonaws.com")
-# check_ip: "https://checkip.amazonaws.com"
+# ip_check: "https://checkip.amazonaws.com"
