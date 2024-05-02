@@ -24,7 +24,7 @@ impl From<AddrParseError> for AddressResolutionError {
 
 impl fmt::Display for AddressResolutionError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        return match self {
+        match self {
             AddressResolutionError::DnsResolutionFailure(host) => {
                 write!(f, "AddressResolutionError({})", host)
             }
@@ -32,7 +32,7 @@ impl fmt::Display for AddressResolutionError {
                 write!(f, "InvalidCheckIpResponse({})", e)
             }
             AddressResolutionError::InvalidHostFormat(e) => write!(f, "InvalidHostFormat({})", e),
-        };
+        }
     }
 }
 

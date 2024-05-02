@@ -1,8 +1,8 @@
 use crate::errors::AddressResolutionError;
 use std::net::{IpAddr, ToSocketAddrs};
 
-pub async fn get_ip(hostname: &str) -> Result<String, Box<dyn std::error::Error>> {
-    let resp = reqwest::get(hostname).await?.text().await?;
+pub async fn get_ip(url: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let resp = reqwest::get(url).await?.text().await?;
     Ok(resp)
 }
 
