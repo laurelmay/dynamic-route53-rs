@@ -4,9 +4,7 @@ pub mod ipaddr;
 
 use std::net::Ipv4Addr;
 use std::path::PathBuf;
-use std::time::Duration;
 
-use aws_sdk_route53::client::Waiters;
 use aws_sdk_route53::error::BuildError;
 use aws_sdk_route53::types::{
     Change, ChangeAction, ChangeBatch, ResourceRecord, ResourceRecordSet, RrType,
@@ -16,8 +14,6 @@ use clap::{value_parser, Arg, ArgAction, Command};
 
 use config::parse_config;
 use ipaddr::{create_dns_client, get_ip, is_current_address};
-
-const MAX_WAIT_TIMEOUT: Duration = Duration::from_secs(300);
 
 #[derive(Debug)]
 struct Opt {
@@ -84,17 +80,5 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .change_batch(batch);
     let resp = req.send().await?;
     println!("Request response: {:?}", resp);
-
-    let change_id = resp
-        .change_info()
-        .map(|info| info.id())
-        .ok_or("No change info")?;
-    let result = client
-        .wait_until_resource_record_sets_changed()
-        .id(change_id)
-        .wait(MAX_WAIT_TIMEOUT)
-        .await?;
-
-    println!("Result after waiting: {:?}", result);
     Ok(())
 }
