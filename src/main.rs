@@ -65,12 +65,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let host_ip = get_ip(&config.ip_check).await?;
     let host_ip = host_ip.trim();
     let host_ip = host_ip.parse::<Ipv4Addr>()?;
-    let client = create_dns_client(&config.dns_server)?;
+    let (mut client, _handle) = match create_dns_client(&config.dns_server).await? {
+        ipaddr::ClientWrapper::Tcp((client, bg)) => (client, tokio::spawn(bg)),
+        ipaddr::ClientWrapper::Udp((client, bg)) => (client, tokio::spawn(bg)),
+    };
 
-    if !config.always_update_record && is_current_address(&config.record_name, client, &host_ip)? {
+    if !config.always_update_record && is_current_address(&config.record_name, &mut client, &host_ip).await? {
         println!("Avoiding unnecessary work. Record is already correct.");
         return Ok(());
     }
+
     let shared_config = aws_config::from_env().load().await;
     let client = Client::new(&shared_config);
     let batch = build_change_object(&host_ip, &config.record_name, config.ttl)?;
