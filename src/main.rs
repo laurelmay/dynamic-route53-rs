@@ -70,7 +70,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ipaddr::ClientWrapper::Udp((client, bg)) => (client, tokio::spawn(bg)),
     };
 
-    if !config.always_update_record && is_current_address(&config.record_name, &mut client, &host_ip).await? {
+    if !config.always_update_record
+        && is_current_address(&config.record_name, &mut client, &host_ip).await?
+    {
         println!("Avoiding unnecessary work. Record is already correct.");
         return Ok(());
     }

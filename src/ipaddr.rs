@@ -15,14 +15,20 @@ use std::str::FromStr;
 use tokio::net::TcpStream as TokioTcpStream;
 use tokio::net::UdpSocket;
 
+type AsyncTcpStream = AsyncIoTokioAsStd<TokioTcpStream>;
+type AsyncDnsBackground<S> = DnsExchangeBackground<S, TokioTime>;
+type AsyncTcpDnsBackground =
+    AsyncDnsBackground<DnsMultiplexer<TcpClientStream<AsyncTcpStream>, Signer>>;
+type AsyncUdpDnsBackground = AsyncDnsBackground<UdpClientStream<UdpSocket>>;
+
 enum ConnectionWrapper {
-    Tcp((TcpClientConnect<AsyncIoTokioAsStd<TokioTcpStream>>, BufDnsStreamHandle)),
+    Tcp((TcpClientConnect<AsyncTcpStream>, BufDnsStreamHandle)),
     Udp(UdpClientConnect<UdpSocket>),
 }
 
 pub enum ClientWrapper {
-    Tcp((AsyncClient, DnsExchangeBackground<DnsMultiplexer<TcpClientStream<AsyncIoTokioAsStd<TokioTcpStream>>, Signer>, TokioTime>)),
-    Udp((AsyncClient, DnsExchangeBackground<UdpClientStream<UdpSocket>, TokioTime>)),
+    Tcp((AsyncClient, AsyncTcpDnsBackground)),
+    Udp((AsyncClient, AsyncUdpDnsBackground)),
 }
 
 pub async fn get_ip(url: &str) -> Result<String, Box<dyn std::error::Error>> {
@@ -46,7 +52,9 @@ pub async fn create_dns_client(
     let address = format!("{}:{}", server.host, server.port).parse()?;
     let conn = create_connection(&server.protocol, address)?;
     let client = match conn {
-        ConnectionWrapper::Tcp((stream, sender)) => ClientWrapper::Tcp(AsyncClient::new(stream, sender, None).await?),
+        ConnectionWrapper::Tcp((stream, sender)) => {
+            ClientWrapper::Tcp(AsyncClient::new(stream, sender, None).await?)
+        }
         ConnectionWrapper::Udp(conn) => ClientWrapper::Udp(AsyncClient::connect(conn).await?),
     };
 
