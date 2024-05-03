@@ -1,0 +1,21 @@
+hosted_zone_id: "{{ $.Values.config.record.hostedZoneId | required ".Values.config.record.hostedZoneId is required" }}"
+record_name: "{{ $.Values.config.record.name | required ".Values.config.record.name is record" }}"
+
+{{- with $.Values.config.record.ttl }}
+ttl: {{ . }}
+{{- end }}
+
+{{- with $.Values.config.checkIp }}
+ip_check: "{{ . }}"
+{{- end }}
+
+{{- with $.Values.config.alwaysUpdateRecord }}
+always_update_record: {{ . }}
+{{- end }}
+
+{{- with $.Values.config.dnsServer }}
+dns_server:
+  host: {{ .host }}
+  port: {{ .port }}
+  protocol: {{ .protocol }}
+{{- end }}

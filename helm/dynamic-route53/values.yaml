@@ -1,0 +1,38 @@
+# Values that get inserted into the application config
+config:
+  record:
+    # The ID of the Route 53 Hosted Zone where the record should be inserted or updated.
+    hostedZoneId: ""
+    # The name of the specific DNS record. This should be the _fully-qualified_ name
+    # (not relative to the base of the hosted zone).
+    name: ""
+    # The TTL to set for the updated/created record
+    ttl: 300
+  # The URL to hit to retrieve the current public IP address. This must return the IPv4 address
+  # as a plain string (without any wrapping quotes, HTML tags, or JSON objects).
+  checkIp: https://checkip.amazonaws.com
+  # Whether to always force the record to be updated. This may be useful for debugging or testing
+  # the process works end-to-end, even if the current record has the correct value.
+  alwaysUpdateRecord: false
+
+  # The upstream DNS server to user. Only unencrypted TCP/UDP are supported.
+  dnsServer:
+    host: 1.1.1.1
+    port: 53
+    protocol: UDP
+
+aws:
+  # The name of the secret that contains the AWS credentials to use. This must contain
+  # two keys: 'AccessKeyId' and 'SecretAccessKey' which should map to the AWS IAM user that
+  # will be used to perform the updates.
+  secretName: dynamic-route53-aws
+  # The AWS region where the Hosted Zone changes should take place
+  region: us-east-1
+
+image:
+  name: ghcr.io/kylelaker/dynamic-route53
+  tag: latest
+  pullPolicy: Always
+
+job:
+  schedule: "*/5 * * * *"

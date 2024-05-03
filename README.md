@@ -45,13 +45,21 @@ which should properly update the entry in Route 53.
 ### On Arch Linux
 
 A (less-than-great) PKGBUILD is provided that will put the systemd files in place
-to run this on a timer. Install t25078.0001.0001.0008he package using the PKGBUILD as you usually would.
+to run this on a timer. Install the package using the PKGBUILD as you usually would.
 Update the configuration files in `/etc/dynamic-route53` and then enable the timer with
 
 ```
 # systemctl enable dynamic-route53.timer
 ```
 
+### As a container
+
+A `Containerfile` is included in the repo. That is automatically pushed to
+[`ghcr.io/kylelaker/dynamic-route53`](https://ghcr.io/kylelaker/dynamic-route53). Additionally,
+a helm chart is included in `helm/dynamic-route53` that can be used for deploying within Kubernetes.
+
+The `CONFIG_FILE`, `AWS_ACCESS_KEY_ID`, and `AWS_SECRET_ACCESS_KEY` environment variables should
+be provided to a created container (the Helm chart manages this).
 
 ## To Do
 

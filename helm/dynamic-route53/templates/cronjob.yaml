@@ -1,0 +1,42 @@
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "dynamic-route53.fullname" . }}
+  labels:
+    {{- include "dynamic-route53.labels" . | nindent 4 }}
+spec:
+  schedule: "{{ $.Values.job.schedule }}"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: {{ .Chart.Name }}
+            image: {{ .Values.image.name }}:{{ .Values.image.tag | default "latest" }}
+            imagePullPolicy: {{ .Values.image.pullPolicy }}
+            command: ["dynamic-route53"]
+            volumeMounts:
+            - name: app-config
+              mountPath: "/etc/dynamic-route53"
+              readOnly: true
+            env:
+            - name: CONFIG_FILE
+              value: "/etc/dynamic-route53/config.yaml"
+            - name: AWS_REGION
+              value: {{ $.Values.aws.region }}
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.aws.secretName }}
+                  key: AccessKeyId
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.aws.secretName }}
+                  key: SecretAccessKey
+          volumes:
+            - name: app-config
+              configMap:
+                name: {{ include "dynamic-route53.fullname" . }}-config
+          restartPolicy: OnFailure
