@@ -1,4 +1,4 @@
-# Maintainer: Kyle Laker <kyle@laker.email>
+# Maintainer: Laurel May <archpkg@laurelmay.me>
 
 _pkgbase=dynamic-route53
 pkgname="${_pkgbase}"-git
@@ -6,7 +6,7 @@ pkgver=0.1.0
 pkgrel=1
 pkgdesc="Dynamically update Route 53 Hosted Zone with the current host's public IP"
 arch=("x86_64")
-url="https://github.com/kylelaker/dynamic-route53-rs"
+url="https://github.com/laurelmay/dynamic-route53-rs"
 license=(MIT)
 depends=()
 makedepends=(git cargo)

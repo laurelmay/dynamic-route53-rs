@@ -30,7 +30,7 @@ aws:
   region: us-east-1
 
 image:
-  name: ghcr.io/kylelaker/dynamic-route53
+  name: ghcr.io/laurelmay/dynamic-route53
   tag: latest
   pullPolicy: Always
 

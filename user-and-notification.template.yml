@@ -23,14 +23,16 @@ Parameters:
       not be created.
     Type: String
     Default: NOT_PROVIDED
+  SecretName:
+    Description: >-
+      The name of the AWS Secrets Manager Secret that will store the user's
+      created IAM Access Key (and secret access key).
+    Type: String
+    Default: __NOT PROVIDED__
 
 Conditions:
-  # CreateNotificationFramework: !Not [!Equals [NOT_PROVIDED, !Ref NotificationEmail]]
-  CreateNotificationFramework:
-    Fn::Not:
-      Fn::Equals:
-        - NOT_PROVIDED
-        - Ref: NotificationEmail
+  CreateNotificationFramework: !Not [!Equals [NOT_PROVIDED, !Ref NotificationEmail]]
+  SecretNameProvided: !Not [!Equals [__NOT PROVIDED__, !Ref SecretName]]
 
 Resources:
   Route53UpdateUser:
@@ -39,6 +41,27 @@ Resources:
       Tags:
         - Key: Purpose
           Value: !Sub Allows updating ${HostedZoneId} to support Dynamic DNS updates
+  Route53UserAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref Route53UpdateUser
+      Status: Active
+  Route53UserAccessKeySecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !If
+        - SecretNameProvided
+        - !Ref SecretName
+        - !Sub "dynamic-route53/${DnsName}/${Route53UpdateUser}/${Route53UserAccessKey}"
+      Description: !Sub >-
+        Key pair for the IAM user created in ${AWS::StackName} to update resource
+        records for ${DnsName} in Hosted Zone ${HostedZoneId}.
+      SecretString: !Sub >-
+        {
+          "Username": "${Route53UpdateUser}",
+          "AccessKeyId": "${Route53UserAccessKey}",
+          "SecretAccessKey": "${Route53UserAccessKey.SecretAccessKey}"
+        }
   AllowRoute53UpdatePolicy:
     Type: AWS::IAM::Policy
     Properties:
@@ -128,13 +151,43 @@ Resources:
             const changes = details.requestParameters.changeBatch.changes;
             const changeStr = JSON.stringify(changes, null, 2);
 
+            const messageLines = [];
+            messageLines.push(`${userName} made the following changes to ${hostedZone}`);
+            messageLines.push(
+              `For more information see https://${consoleDomain(region)}/cloudtrail/home?region=${region}#/events/${cloudTrailId}.`
+            )
+            try {
+              if (!Array.isArray(changes)) {
+                changes = [changes];
+              }
+              const detailLines = [];
+              changes.forEach((change, i) => {
+                const section = `Change #${i + 1}:`;
+                const action = change.action;
+                const name = change.resourceRecordSet.name;
+                const type = change.resourceRecordSet.type;
+                const ttl = change.resourceRecordSet.tTL; // not a typo -- this is the correct field in the data
+                const records = change.resourceRecordSet.resourceRecords.map((rr) => rr.value).join(", ");
+
+                const changeDetails = [
+                  section,
+                  `  Action: ${action}`,
+                  `  Name: ${name}`,
+                  `  Record Type: ${type}`,
+                  `  TTL: ${ttl}`,
+                  `  Records: ${records}`,
+                ];
+                detailLines.push(changeDetails.join("\n"));
+              });
+              messageLines.push(detailLines.join("\n"));
+            } catch (err) {
+              messageLines.push(changeStr);
+            }
+
             const publishCommand = new PublishCommand({
               TopicArn: process.env.TOPIC_ARN,
               Subject: `${hostedZone} Updated`,
-              Message:
-                `${userName} made the following changes to ${hostedZone}.
-                For more information see https://${consoleDomain(region)}/cloudtrail/home?region=${region}#/events/${cloudTrailId}.
-                ${changeStr}`,
+              Message: messageLines.join('\n'),
             });
             try {
               const result = await client.send(publishCommand);
@@ -148,7 +201,6 @@ Resources:
     Type: AWS::Events::Rule
     Properties:
       Description: Checks when the Route 53 update user performs updates to the zone
-      Name: route53update
       Targets:
         - Id: notification-transform-v1
           Arn: !GetAtt NotificationTransform.Arn
@@ -184,6 +236,10 @@ Outputs:
       will likely be necessary to create an Access Key for this User so that it
       can login.
     Value: !Ref Route53UpdateUser
+  AccessKeySecret:
+    Value: !Ref Route53UserAccessKeySecret
+  AccessKeyId:
+    Value: !Ref Route53UserAccessKey
   NotificationTopic:
     Condition: CreateNotificationFramework
     Description: >-

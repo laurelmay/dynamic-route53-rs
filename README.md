@@ -55,7 +55,7 @@ Update the configuration files in `/etc/dynamic-route53` and then enable the tim
 ### As a container
 
 A `Containerfile` is included in the repo. That is automatically pushed to
-[`ghcr.io/kylelaker/dynamic-route53`](https://ghcr.io/kylelaker/dynamic-route53). Additionally,
+[`ghcr.io/laurelmay/dynamic-route53`](https://ghcr.io/laurelmay/dynamic-route53). Additionally,
 a helm chart is included in `helm/dynamic-route53` that can be used for deploying within Kubernetes.
 
 The `CONFIG_FILE`, `AWS_ACCESS_KEY_ID`, and `AWS_SECRET_ACCESS_KEY` environment variables should
