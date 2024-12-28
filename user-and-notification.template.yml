@@ -128,9 +128,6 @@ Resources:
           const { SNSClient, PublishCommand } = require("@aws-sdk/client-sns");
           const client = new SNSClient();
 
-          // The Route 53 APIs that we're truly concerned with only exist in the
-          // commercial partition but we'll make this somewhat generic just in case.
-          // This won't support `aws-iso` or `aws-iso-b`.
           function consoleDomain(region) {
             if (region.startsWith("us-gov")) {
               return "console.amazonaws-us-gov.com";
@@ -148,7 +145,7 @@ Resources:
             const hostedZone = details.requestParameters.hostedZoneId;
             const cloudTrailId = details.eventID;
             const region = details.awsRegion;
-            const changes = details.requestParameters.changeBatch.changes;
+            let changes = details.requestParameters.changeBatch.changes;
             const changeStr = JSON.stringify(changes, null, 2);
 
             const messageLines = [];
@@ -160,8 +157,7 @@ Resources:
               if (!Array.isArray(changes)) {
                 changes = [changes];
               }
-              const detailLines = [];
-              changes.forEach((change, i) => {
+              const detailLines = changes.map((change, i) => {
                 const section = `Change #${i + 1}:`;
                 const action = change.action;
                 const name = change.resourceRecordSet.name;
@@ -177,7 +173,7 @@ Resources:
                   `  TTL: ${ttl}`,
                   `  Records: ${records}`,
                 ];
-                detailLines.push(changeDetails.join("\n"));
+                return changeDetails.join("\n");
               });
               messageLines.push(detailLines.join("\n"));
             } catch (err) {
